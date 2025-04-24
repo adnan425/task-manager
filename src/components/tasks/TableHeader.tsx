@@ -1,4 +1,3 @@
-import TaskForm from "@/components/tasks/TaskForm";
 import {
     Select,
     SelectContent,
@@ -8,9 +7,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useTasksList } from '@/hooks/useTasks';
-const TableHeader = () => {
-    const { statusFilter, priorityFilter, setPriorityFilter, setStatusFilter, } = useTasksList()
+import React from 'react';
+
+interface TableHeaderProps {
+    statusFilter: string;
+    priorityFilter: string;
+    setStatusFilter: (value: string) => void;
+    setPriorityFilter: (value: string) => void;
+}
+
+const TableHeader: React.FC<TableHeaderProps> = ({ statusFilter, priorityFilter, setStatusFilter, setPriorityFilter }) => {
     return (
         <div className="flex flex-wrap items-center gap-3 py-4">
 
@@ -51,9 +57,7 @@ const TableHeader = () => {
             </Select>
 
 
-            <div className="ml-auto">
-                <TaskForm />
-            </div>
+
         </div>
     )
 }

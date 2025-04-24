@@ -24,6 +24,7 @@ export const useSignIn = () => {
         setLoading(true);
         try {
             const res = await axiosInstance.post("/api/sign-in", data);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
             router.push("/");
         } catch (err: any) {
             console.error("Login error:", err);

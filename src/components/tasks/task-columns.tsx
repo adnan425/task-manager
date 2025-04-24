@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Priority, Status, Task } from "@/generated/prisma";
 import { getPriorityIcon, getStatusIcon } from "@/lib/utils";
+import { DataTableColumnHeader } from "../ui/DataTableColumnHeader";
 import { TaskDelete } from "./DeleteTask";
 import TaskForm from "./TaskForm";
-import { DataTableColumnHeader } from "../ui/DataTableColumnHeader";
 
 
 export function getTasksTableColumns(): ColumnDef<Task>[] {
@@ -67,13 +67,25 @@ export function getTasksTableColumns(): ColumnDef<Task>[] {
                 const status = ["pending", "completed"].find(
                     (status) => status === cell.getValue<Task["status"]>(),
                 );
-
                 if (!status) return null;
-
                 const Icon = getStatusIcon(status as Status);
 
+                const getStatusVariant = (status: string) => {
+                    switch (status) {
+                        case "pending":
+                            return "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100";
+                        case "completed":
+                            return "bg-green-50 text-green-700 border-green-200 hover:bg-green-100";
+                        default:
+                            return "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100";
+                    }
+                };
+
                 return (
-                    <Badge variant="outline" className="py-1 [&>svg]:size-3.5">
+                    <Badge
+                        variant="outline"
+                        className={`py-1 [&>svg]:size-3.5 ${getStatusVariant(status)}`}
+                    >
                         <Icon />
                         <span className="capitalize">{status}</span>
                     </Badge>
@@ -101,13 +113,27 @@ export function getTasksTableColumns(): ColumnDef<Task>[] {
                 const priority = ["low", "medium", "high"].find(
                     (priority) => priority === cell.getValue<Task["priority"]>(),
                 );
-
                 if (!priority) return null;
-
                 const Icon = getPriorityIcon(priority as Priority);
 
+                const getPriorityVariant = (priority: string) => {
+                    switch (priority) {
+                        case "low":
+                            return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
+                        case "medium":
+                            return "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100";
+                        case "high":
+                            return "bg-red-50 text-red-700 border-red-200 hover:bg-red-100";
+                        default:
+                            return "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100";
+                    }
+                };
+
                 return (
-                    <Badge variant="outline" className="py-1 [&>svg]:size-3.5">
+                    <Badge
+                        variant="outline"
+                        className={`py-1 [&>svg]:size-3.5 ${getPriorityVariant(priority)}`}
+                    >
                         <Icon />
                         <span className="capitalize">{priority}</span>
                     </Badge>

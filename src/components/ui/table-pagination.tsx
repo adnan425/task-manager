@@ -51,7 +51,7 @@ export function DataTablePagination<TData>({
 
     const firstRowIndex = (currentPage - 1) * pageSize + 1;
     const lastRowIndex = Math.min(totalRows, firstRowIndex + pageSize - 1);
-    if (!loading && data.length === 0)
+    if (!loading && data.length != 0)
         return (
             <div className="flex items-center justify-end my-2">
 

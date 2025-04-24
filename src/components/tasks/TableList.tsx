@@ -1,22 +1,40 @@
-import React from 'react'
 import Filters from "@/components/tasks/TableHeader";
 import {
     Table,
     TableBody,
     TableCell,
     TableHead,
-    TableRow, TableHeader
+    TableHeader,
+    TableRow
 } from "@/components/ui/table";
+import { DataTablePagination } from "@/components/ui/table-pagination";
 import { useTasksList } from '@/hooks/useTasks';
 import { flexRender } from "@tanstack/react-table";
 import { Loader } from "lucide-react";
-import { DataTablePagination } from "@/components/ui/table-pagination";
+import { TaskDelete } from "./DeleteTask";
+import TaskForm from "./TaskForm";
 
 const TableList = () => {
-    const { tasks, loading, totalTasks, page, pageSize, setPage, table, columns } = useTasksList()
+    const {
+        tasks, loading, totalTasks, page, pageSize, setPage,
+        table, columns, refetch,
+        statusFilter, priorityFilter, setStatusFilter, setPriorityFilter
+    } = useTasksList()
     return (
         <>
-            <Filters />
+            <div className='flex items-center justify-between mb-2'>
+                <Filters
+                    statusFilter={statusFilter}
+                    priorityFilter={priorityFilter}
+                    setStatusFilter={setStatusFilter}
+                    setPriorityFilter={setPriorityFilter}
+                />
+                <div className="ml-auto">
+                    <TaskForm refetch={refetch} />
+                </div>
+            </div>
+
+
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -44,11 +62,23 @@ const TableList = () => {
                                 {table.getRowModel().rows?.length ? (
                                     table.getRowModel().rows.map((row) => (
                                         <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>
-                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                </TableCell>
-                                            ))}
+                                            {row.getVisibleCells().map((cell) => {
+                                                // If this is the actions cell, inject refetch to TaskForm and TaskDelete
+                                                if (cell.column.id === 'actions') {
+                                                    const task = row.original;
+                                                    return (
+                                                        <TableCell key={cell.id}>
+                                                            <TaskForm task={task} refetch={refetch} />
+                                                            <TaskDelete taskId={task.id} refetch={refetch} />
+                                                        </TableCell>
+                                                    );
+                                                }
+                                                return (
+                                                    <TableCell key={cell.id}>
+                                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    </TableCell>
+                                                );
+                                            })}
                                         </TableRow>
                                     ))
                                 ) : (

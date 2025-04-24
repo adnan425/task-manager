@@ -10,21 +10,23 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
-import { useTasks, useTasksList } from "@/hooks/useTasks";
+import { useTasks } from "@/hooks/useTasks";
 import { taskSchema } from "@/schemas/taskSchema";
-import { Loader, Pencil, PlusCircle } from "lucide-react";
 import { z } from "zod";
+import { Loader, Pencil, PlusCircle } from "lucide-react";
 import { FormFieldWrapper } from "../ui/FormFieldWrapper";
 import { Task } from "@/generated/prisma";
 import { useState } from "react";
+
 interface TaskFormProps {
     task?: Task;
+    refetch: () => void;
 }
-export default function TaskForm({ task }: TaskFormProps) {
-    const { form, createTask, loading, statusOptions, priorityOptions, updateTask } = useTasks(task);
+
+export default function TaskForm({ task, refetch }: TaskFormProps) {
+    const { form, createTask, loading, statusOptions, priorityOptions, updateTask, } = useTasks(task);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { refetch } = useTasksList()
-    // If taskId is provided, use update logic
+
     const isUpdating = task !== undefined;
 
     async function onSubmit(data: z.infer<typeof taskSchema>) {
@@ -34,9 +36,9 @@ export default function TaskForm({ task }: TaskFormProps) {
             } else {
                 await createTask(data);
             }
-            refetch()
-            // Close modal after success
+            refetch();
             setIsModalOpen(false);
+            form.reset(); // Reset form after successful submission
         } catch (error) {
             console.error("Error:", error);
         }
@@ -48,7 +50,6 @@ export default function TaskForm({ task }: TaskFormProps) {
                 {isUpdating ? (
                     <Button variant="ghost" size="sm">
                         <Pencil className="mr-2 h-4 w-4 text-blue-500  hover:text-blue-600" />
-                        Edit
                     </Button>
                 ) : (
                     <Button variant="outline">
@@ -102,11 +103,14 @@ export default function TaskForm({ task }: TaskFormProps) {
                         />
 
                         <DialogFooter>
-                            <DialogTrigger asChild>
-                                <Button disabled={loading} type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogTrigger>
+                            <Button
+                                disabled={loading}
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
                             <Button type="submit" disabled={loading}>
                                 {loading && <Loader className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
                                 {isUpdating ? "Update Task" : "Save Task"}
