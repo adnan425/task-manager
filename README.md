@@ -41,7 +41,7 @@ This Task Manager application allows authenticated users to efficiently manage t
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/adnan425/task-manager
 cd task-manager
 ```
 
