@@ -2,16 +2,15 @@
 
 import { getTasksTableColumns } from "@/components/tasks/task-columns";
 import TaskForm from "@/components/tasks/TaskForm";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,66 +19,53 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Task } from "@/generated/prisma";
+import { DataTablePagination } from "@/components/ui/table-pagination";
 import { useTasksList } from '@/hooks/useTasks';
+import { SelectValue } from "@radix-ui/react-select";
 import {
   ColumnFiltersState,
-  SortingState,
   VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table";
 import {
-  ChevronDown,
-  Columns3,
-  RefreshCcw
+  Loader
 } from "lucide-react";
 import * as React from "react";
 
 export default function TaskTable() {
-  const [searchQuery, setSearchQuery] = React.useState<string>();
-  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [columnVisibility] = React.useState<VisibilityState>({});
   const [statusFilter, setStatusFilter] = React.useState("");
   const [priorityFilter, setPriorityFilter] = React.useState("");
   // Fetch tasks using the custom hook
-  const { tasks, loading, error } = useTasksList();
+  const { tasks, loading, sorting, setSorting, totalTasks, page, pageSize, setPage } = useTasksList();
 
   const columns = getTasksTableColumns();
   const table = useReactTable({
     data: tasks || [],
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
+    manualSorting: true,
+    manualFiltering: true,
+    pageCount: totalTasks,
+    manualPagination: true,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
-
+      pagination: {
+        pageIndex: page - 1,
+        pageSize: pageSize,
+      },
     },
-
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
-  React.useEffect(() => {
-    table.getColumn("status")?.setFilterValue(statusFilter || undefined);
-  }, [statusFilter]);
-
-  React.useEffect(() => {
-    table.getColumn("priority")?.setFilterValue(priorityFilter || undefined);
-  }, [priorityFilter]);
 
   return (
     <div className="flex justify-center min-h-screen flex justify-center items-start py-10 px-4">
@@ -89,87 +75,53 @@ export default function TaskTable() {
         </h1>
         <p className="leading-7 mt-4 text-muted-foreground text-center max-w-2xl mx-auto px-4">
           View, filter, and manage your personal tasks. Sort by priority or status, and keep track of what matters most.
+
         </p>
 
         <div className="flex flex-wrap items-center gap-3 py-4">
-          {/* Title search */}
-          <Input
-            placeholder="Search title..."
-            value={String(table?.getColumn("title")?.getFilterValue() ?? "")}
 
-            onChange={(event) => table.getColumn("title")?.setFilterValue(event.target.value)}
-            className="max-w-sm"
-          />
-
-
-          {/* Status filter */}
-          <select
+          <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded px-3 py-2 text-sm"
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              table.getColumn("status")?.setFilterValue(value);
+            }}
           >
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-          </select>
-
-          {/* Priority filter */}
-          <select
+            <SelectTrigger className=" ">
+              <SelectValue placeholder="Select a status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Status</SelectLabel>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Select
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="border rounded px-3 py-2 text-sm"
+            onValueChange={(value) => {
+              setPriorityFilter(value);
+              table.getColumn("priority")?.setFilterValue(value);
+            }}
           >
-            <option value="">All priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
+            <SelectTrigger className="">
+              <SelectValue placeholder="Select a priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Priority</SelectLabel>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
 
-          {/* Column visibility */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                <Columns3 /> Columns <ChevronDown className="ml-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
 
-              <DropdownMenuSeparator />
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  if (
-                    searchQuery &&
-                    !column.id.toLowerCase().includes(searchQuery.toLowerCase())
-                  ) {
-                    return null;
-                  }
-
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  table.resetColumnVisibility();
-                  setSearchQuery("");
-                }}
-              >
-                <RefreshCcw /> Reset
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <TaskForm />
+          <div className="ml-auto">
+            <TaskForm />
+          </div>
         </div>
 
         <div className="rounded-md border">
@@ -188,51 +140,48 @@ export default function TaskTable() {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
+              {
+                loading ? <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results.
+                    <div className="flex justify-center items-center h-full">
+                      <Loader className="animate-spin h-8 w-8" />
+                    </div>
                   </TableCell>
-                </TableRow>
-              )}
+                </TableRow> : <>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} className="h-24 text-center">
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              }
+
             </TableBody>
           </Table>
         </div>
+        {/* Only show pagination when not in loading state */}
+        {!loading && !(loading && tasks.length === 0) && (
+          <DataTablePagination
+            table={table}
+            pageSize={pageSize}
+            onPaginationChange={setPage}
+            rowCount={totalTasks}
+            currentPage={page}
+          />
+        )}
 
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </div>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
 

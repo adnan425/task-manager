@@ -6,9 +6,7 @@ import {
     CircleDashed,
     Clock,
     MoreVertical,
-    Pencil,
-    Text,
-    Trash,
+    Text
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +17,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getPriorityIcon, getStatusIcon } from "@/lib/utils";
 import { Priority, Status, Task } from "@/generated/prisma";
+import { getPriorityIcon, getStatusIcon } from "@/lib/utils";
 import { TaskDelete } from "./DeleteTask";
 import TaskForm from "./TaskForm";
+import { DataTableColumnHeader } from "../ui/DataTableColumnHeader";
 
 
 export function getTasksTableColumns(): ColumnDef<Task>[] {
@@ -41,6 +40,7 @@ export function getTasksTableColumns(): ColumnDef<Task>[] {
             },
             enableColumnFilter: true,
         },
+
         {
             accessorKey: "description",
             header: "Description",
@@ -58,36 +58,20 @@ export function getTasksTableColumns(): ColumnDef<Task>[] {
             enableColumnFilter: true,
         },
         {
-            accessorKey: "priority",
-            header: "Priority",
-            cell: ({ row }) => {
-                const priority = row.getValue("priority") as Task["priority"];
-                const Icon = getPriorityIcon(priority);
-                return (
-                    <Badge variant="outline" className="py-1 [&>svg]:size-3.5">
-                        <Icon />
-                        <span className="capitalize">{priority}</span>
-                    </Badge>
-                );
-            },
-            meta: {
-                label: "Priority",
-                variant: "multiSelect",
-                options: ["low", "medium", "high"].map((priority) => ({
-                    label: priority.charAt(0).toUpperCase() + priority.slice(1),
-                    value: priority,
-                    icon: getPriorityIcon(priority as Priority),
-                })),
-                icon: ArrowUpDown,
-            },
-            enableColumnFilter: true,
-        },
-        {
+            id: "status",
             accessorKey: "status",
-            header: "Status",
-            cell: ({ row }) => {
-                const status = row.getValue("status") as Task["status"];
-                const Icon = getStatusIcon(status);
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Status" />
+            ),
+            cell: ({ cell }) => {
+                const status = ["pending", "completed"].find(
+                    (status) => status === cell.getValue<Task["status"]>(),
+                );
+
+                if (!status) return null;
+
+                const Icon = getStatusIcon(status as Status);
+
                 return (
                     <Badge variant="outline" className="py-1 [&>svg]:size-3.5">
                         <Icon />
@@ -107,7 +91,40 @@ export function getTasksTableColumns(): ColumnDef<Task>[] {
             },
             enableColumnFilter: true,
         },
+        {
+            id: "priority",
+            accessorKey: "priority",
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="Priority" />
+            ),
+            cell: ({ cell }) => {
+                const priority = ["low", "medium", "high"].find(
+                    (priority) => priority === cell.getValue<Task["priority"]>(),
+                );
 
+                if (!priority) return null;
+
+                const Icon = getPriorityIcon(priority as Priority);
+
+                return (
+                    <Badge variant="outline" className="py-1 [&>svg]:size-3.5">
+                        <Icon />
+                        <span className="capitalize">{priority}</span>
+                    </Badge>
+                );
+            },
+            meta: {
+                label: "Priority",
+                variant: "multiSelect",
+                options: ["low", "medium", "high"].map((priority) => ({
+                    label: priority.charAt(0).toUpperCase() + priority.slice(1),
+                    value: priority,
+                    icon: getPriorityIcon(priority as Priority),
+                })),
+                icon: ArrowUpDown,
+            },
+            enableColumnFilter: true,
+        },
         {
             accessorKey: "createdAt",
             header: "Created At",

@@ -1,14 +1,15 @@
 "use client";
 
+import { Priority, Status, Task } from "@/generated/prisma";
+import axiosInstance from "@/lib/axiosInstance";
+import { ERROR_MESSAGES } from "@/lib/config";
+import { taskSchema } from "@/schemas/taskSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import axiosInstance from "@/lib/axiosInstance";
 import { z } from "zod";
-import { taskSchema } from "@/schemas/taskSchema";
-import { Priority, Status, Task } from "@/generated/prisma";
-import { ERROR_MESSAGES } from "@/lib/config";
 
 export function useTasks(initialValues?: z.infer<typeof taskSchema>) {
     const [loading, setLoading] = useState(false);
@@ -98,59 +99,68 @@ export function useTasks(initialValues?: z.infer<typeof taskSchema>) {
         deleteTask
     };
 }
-interface UseTasksOptions {
-    search?: string;
-    filters?: Record<string, string | number | boolean>;
-    sortBy?: string;
-    order?: "asc" | "desc";
-    page?: number;
-    pageSize?: number;
-}
-export const useTasksList = (options: UseTasksOptions = {}) => {
+
+
+export const useTasksList = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [sorting, setSorting] = useState<SortingState>([{ id: "status", desc: false }]);  // Default sorting by 'status'
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    const [totalTasks, setTotalTasks] = useState(0);
+    const [page, setPage] = useState(1);
+    const pageSize = 6;
 
-    const {
-        search = "",
-        filters = {},
-        sortBy = "created_at",
-        order = "desc",
-        page = 1,
-        pageSize = 10,
-    } = options;
     const fetchTasks = async () => {
         setLoading(true);
-        setError(null);
         try {
-            const params = new URLSearchParams({
-                search,
-                sortBy,
-                order,
-                page: String(page),
-                pageSize: String(pageSize),
-                ...Object.fromEntries(Object.entries(filters).map(([k, v]) => [k, String(v)])),
+            // Prepare sorting parameters from the state
+            const sortParams = sorting.map((sort) => ({
+                column: sort.id,  // 'status' or 'priority'
+                direction: sort.desc ? "desc" : "asc",
+            }));
+
+            // Prepare filter parameters from the state (if needed)
+            const filters = columnFilters.reduce((acc, filter) => {
+                acc[filter.id] = filter.value as string;
+                return acc;
+            }, {} as Record<string, string>);
+
+            // Make the API request to fetch tasks
+            const response = await axiosInstance.get("/api/tasks", {
+                params: {
+                    sorting: JSON.stringify(sortParams),  // Send sorting as a JSON string
+                    filters: JSON.stringify(filters),     // Send filters as a JSON string
+                    page,
+                    pageSize,
+                },
             });
 
-            const response = await axiosInstance.get("/api/tasks", { params });
-            setTasks(response.data.tasks || []);
-        } catch (err: any) {
-            setError(err.message || ERROR_MESSAGES.SERVER_ERROR);
+            // Update state with fetched data
+            setTotalTasks(response?.data?.totalTasks || 0);
+            setTasks(response?.data?.tasks || []);
+        } catch (error) {
+            console.error("Error fetching tasks:", error);
         } finally {
             setLoading(false);
         }
     };
+
     useEffect(() => {
-
-
-        fetchTasks();
-    }, [search, sortBy, order, page, pageSize, JSON.stringify(filters)]);
+        fetchTasks();  // Fetch tasks whenever the page or sorting changes
+    }, [page, sorting]);
 
     return {
         tasks,
         loading,
-        error,
-        refetch: fetchTasks,
+        setPage,
+        totalTasks,
+        sorting,
+        setSorting,
+        columnFilters,
+        setColumnFilters,
+        pageSize,
+        page,
     };
 };
+
 
