@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { registerSchema } from "@/schemas/authSchema";
 import { prisma } from "@/lib/prisma";
+import { ERROR_MESSAGES } from "@/lib/config";
 
 export async function POST(req: Request) {
     try {
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
         if (!result.success) {
             return NextResponse.json(
                 {
-                    message: "Some fields are missing or incorrect. Please review and try again.",
+                    message: ERROR_MESSAGES.VALIDATION_FAILED,
                     errors: result.error.flatten().fieldErrors,
                 },
                 { status: 400 }
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     } catch (error) {
         console.error("Registration error:", error);
         return NextResponse.json(
-            { message: "Oops! Something went wrong. Please try again later." },
+            { message: ERROR_MESSAGES.VALIDATION_FAILED, },
             { status: 500 }
         );
     }

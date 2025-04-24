@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/schemas/authSchema";
+import { ERROR_MESSAGES } from "@/lib/config";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 const TOKEN_EXPIRY = 60 * 60 * 24 * 7; // 7 days
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
         if (!result.success) {
             return NextResponse.json(
                 {
-                    message: "Some fields are missing or incorrect. Please review and try again.",
+                    message: ERROR_MESSAGES.VALIDATION_FAILED,
                     errors: result.error.flatten().fieldErrors,
                 },
                 { status: 400 }
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
     } catch (error) {
         console.error("Login error:", error);
         return NextResponse.json(
-            { message: "Something went wrong. Please try again later." },
+            { message: ERROR_MESSAGES.SERVER_ERROR, },
             { status: 500 }
         );
     }

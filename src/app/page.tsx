@@ -1,6 +1,6 @@
 "use client";
 
-import { columns, data } from '@/components/tasks/task-columns';
+import { getTasksTableColumns } from "@/components/tasks/task-columns";
 import TaskForm from "@/components/tasks/TaskForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Task } from "@/generated/prisma";
+import { useTasksList } from '@/hooks/useTasks';
 import {
   ColumnFiltersState,
   SortingState,
@@ -46,9 +48,12 @@ export default function TaskTable() {
   const [rowSelection, setRowSelection] = React.useState({});
   const [statusFilter, setStatusFilter] = React.useState("");
   const [priorityFilter, setPriorityFilter] = React.useState("");
+  // Fetch tasks using the custom hook
+  const { tasks, loading, error } = useTasksList();
 
+  const columns = getTasksTableColumns();
   const table = useReactTable({
-    data,
+    data: tasks || [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -63,7 +68,9 @@ export default function TaskTable() {
       columnFilters,
       columnVisibility,
       rowSelection,
+
     },
+
   });
 
   React.useEffect(() => {
@@ -88,12 +95,12 @@ export default function TaskTable() {
           {/* Title search */}
           <Input
             placeholder="Search title..."
-            value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("title")?.setFilterValue(event.target.value)
-            }
+            value={String(table?.getColumn("title")?.getFilterValue() ?? "")}
+
+            onChange={(event) => table.getColumn("title")?.setFilterValue(event.target.value)}
             className="max-w-sm"
           />
+
 
           {/* Status filter */}
           <select
