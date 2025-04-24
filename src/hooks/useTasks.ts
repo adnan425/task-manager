@@ -1,12 +1,13 @@
 "use client";
 
+import { getTasksTableColumns } from "@/components/tasks/task-columns";
 import { Priority, Status, Task } from "@/generated/prisma";
 import axiosInstance from "@/lib/axiosInstance";
 import { ERROR_MESSAGES } from "@/lib/config";
 import { taskSchema } from "@/schemas/taskSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
-import { useEffect, useState } from "react";
+import { ColumnFiltersState, getCoreRowModel, getPaginationRowModel, SortingState, useReactTable } from "@tanstack/react-table";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -104,50 +105,76 @@ export function useTasks(initialValues?: z.infer<typeof taskSchema>) {
 export const useTasksList = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(false);
-    const [sorting, setSorting] = useState<SortingState>([{ id: "status", desc: false }]);  // Default sorting by 'status'
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: 'status', desc: false },
+    ]);
     const [totalTasks, setTotalTasks] = useState(0);
     const [page, setPage] = useState(1);
     const pageSize = 6;
+    const [statusFilter, setStatusFilter] = useState('');
+    const [priorityFilter, setPriorityFilter] = useState('');
 
     const fetchTasks = async () => {
         setLoading(true);
         try {
-            // Prepare sorting parameters from the state
+            const filters: Record<string, string> = {};
+            if (statusFilter) {
+                filters['status'] = statusFilter;
+            }
+            if (priorityFilter) {
+                filters['priority'] = priorityFilter;
+            }
+
             const sortParams = sorting.map((sort) => ({
-                column: sort.id,  // 'status' or 'priority'
-                direction: sort.desc ? "desc" : "asc",
+                column: sort.id,
+                direction: sort.desc ? 'desc' : 'asc',
             }));
 
-            // Prepare filter parameters from the state (if needed)
-            const filters = columnFilters.reduce((acc, filter) => {
-                acc[filter.id] = filter.value as string;
-                return acc;
-            }, {} as Record<string, string>);
 
-            // Make the API request to fetch tasks
-            const response = await axiosInstance.get("/api/tasks", {
+
+            console.log('Filters:', filters);
+            const response = await axiosInstance.get('/api/tasks', {
                 params: {
-                    sorting: JSON.stringify(sortParams),  // Send sorting as a JSON string
-                    filters: JSON.stringify(filters),     // Send filters as a JSON string
+                    sorting: JSON.stringify(sortParams),
+                    filters: JSON.stringify(filters),
                     page,
                     pageSize,
                 },
             });
+            console.log('Fetching tasks with filters:', filters);
 
-            // Update state with fetched data
             setTotalTasks(response?.data?.totalTasks || 0);
             setTasks(response?.data?.tasks || []);
         } catch (error) {
-            console.error("Error fetching tasks:", error);
+            console.error('Error fetching tasks:', error);
         } finally {
             setLoading(false);
         }
     };
-
     useEffect(() => {
-        fetchTasks();  // Fetch tasks whenever the page or sorting changes
-    }, [page, sorting]);
+        fetchTasks();
+    }, [page, sorting, statusFilter, priorityFilter]);
+
+    const columns = useMemo(() => getTasksTableColumns(), []);
+
+    const table = useReactTable({
+        data: tasks,
+        columns,
+        manualSorting: true,
+        manualFiltering: true,
+        pageCount: totalTasks,
+        manualPagination: true,
+        state: {
+            sorting,
+            pagination: {
+                pageIndex: page - 1,
+                pageSize,
+            },
+        },
+        onSortingChange: setSorting,
+        getCoreRowModel: getCoreRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+    });
 
     return {
         tasks,
@@ -156,11 +183,15 @@ export const useTasksList = () => {
         totalTasks,
         sorting,
         setSorting,
-        columnFilters,
-        setColumnFilters,
         pageSize,
         page,
+        refetch: fetchTasks,
+        statusFilter,
+        setStatusFilter,
+        priorityFilter,
+        setPriorityFilter,
+        table,
+        columns,
     };
 };
-
 

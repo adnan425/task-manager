@@ -9,7 +9,9 @@ interface DataTablePaginationProps<TData> {
     pageSize: number;
     onPaginationChange: (pageIndex: number, pageSize: number) => void;
     rowCount: number;
-    currentPage: number; // Add currentPage prop
+    currentPage: number;
+    loading: boolean,
+    data: TData[]
 }
 
 export function DataTablePagination<TData>({
@@ -18,6 +20,8 @@ export function DataTablePagination<TData>({
     onPaginationChange,
     rowCount,
     currentPage,
+    loading,
+    data
 }: DataTablePaginationProps<TData>) {
     const totalRows = rowCount;
     const canGoNextPage = currentPage + 1 <= Math.ceil(totalRows / pageSize);
@@ -47,39 +51,39 @@ export function DataTablePagination<TData>({
 
     const firstRowIndex = (currentPage - 1) * pageSize + 1;
     const lastRowIndex = Math.min(totalRows, firstRowIndex + pageSize - 1);
+    if (!loading && data.length === 0)
+        return (
+            <div className="flex items-center justify-end my-2">
 
-    return (
-        <div className="flex items-center justify-end my-2">
-
-            <div className="flex items-center gap-x-6 lg:gap-x-8">
-                <p className="hidden text-sm tabular-nums text-gray-500 sm:block">
-                    Showing{' '}
-                    <span className="font-medium text-gray-900 dark:text-gray-50">
-                        {firstRowIndex}-{lastRowIndex}
-                    </span>{' '}
-                    of{' '}
-                    <span className="font-medium text-gray-900 dark:text-gray-50">
-                        {totalRows}
-                    </span>
-                </p>
-                <div className="flex items-center gap-x-1.5">
-                    {paginationButtons.map((button, index) => (
-                        <Button
-                            key={index}
-                            variant="secondary"
-                            className={cn(button.mobileView, 'p-1.5')}
-                            onClick={() => {
-                                button.onClick();
-                                table.resetRowSelection();
-                            }}
-                            disabled={button.disabled}
-                        >
-                            <span className="sr-only">{button.srText}</span>
-                            {button.text}
-                        </Button>
-                    ))}
+                <div className="flex items-center gap-x-6 lg:gap-x-8">
+                    <p className="hidden text-sm tabular-nums text-gray-500 sm:block">
+                        Showing{' '}
+                        <span className="font-medium text-gray-900 dark:text-gray-50">
+                            {firstRowIndex}-{lastRowIndex}
+                        </span>{' '}
+                        of{' '}
+                        <span className="font-medium text-gray-900 dark:text-gray-50">
+                            {totalRows}
+                        </span>
+                    </p>
+                    <div className="flex items-center gap-x-1.5">
+                        {paginationButtons.map((button, index) => (
+                            <Button
+                                key={index}
+                                variant="secondary"
+                                className={cn(button.mobileView, 'p-1.5')}
+                                onClick={() => {
+                                    button.onClick();
+                                    table.resetRowSelection();
+                                }}
+                                disabled={button.disabled}
+                            >
+                                <span className="sr-only">{button.srText}</span>
+                                {button.text}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
 }

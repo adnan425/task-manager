@@ -36,13 +36,13 @@ export async function GET(req: Request) {
 
     try {
         const url = new URL(req.url);
-        const page = parseInt(url.searchParams.get('page') || '1', 10); // Default to page 1
-        const limit = parseInt(url.searchParams.get('pageSize') || '6', 10); // Default to 6 tasks per page
+        const page = parseInt(url.searchParams.get('page') || '1', 10);
+        const limit = parseInt(url.searchParams.get('pageSize') || '6', 10);
 
         // Fetch sorting parameters
-        const sorting = JSON.parse(url.searchParams.get('sorting') || '[]');  // Get sorting from URL params
-        const sortColumn = sorting.length > 0 ? sorting[0].column : 'status';  // Default to sorting by 'status'
-        const sortDirection = sorting.length > 0 && sorting[0].direction ? sorting[0].direction : 'asc';  // Default to ascending
+        const sorting = JSON.parse(url.searchParams.get('sorting') || '[]');
+        const sortColumn = sorting.length > 0 ? sorting[0].column : 'status';
+        const sortDirection = sorting.length > 0 && sorting[0].direction ? sorting[0].direction : 'asc';
 
         // Fetch filters from URL params
         const filters = JSON.parse(url.searchParams.get('filters') || '{}');
@@ -52,36 +52,39 @@ export async function GET(req: Request) {
         // Prepare filter object for Prisma
         const filterConditions: any = { userId: user.sub };
 
-        if (status) filterConditions.status = status;
-        if (priority) filterConditions.priority = priority;
+        if (status) {
+            filterConditions.status = status;
+        }
 
-        // Fetch tasks from Prisma with sorting and filters
+        if (priority) {
+            filterConditions.priority = priority;
+        }
+
+        // Get tasks with filters, sorting, and pagination
         const tasks = await prisma.task.findMany({
             where: filterConditions,
             orderBy: {
-                [sortColumn]: sortDirection,  // Dynamically set the sorting column and direction
+                [sortColumn]: sortDirection,
             },
-            skip: (page - 1) * limit,  // Skip based on page
-            take: limit,  // Limit the number of tasks
+            skip: (page - 1) * limit,
+            take: limit,
         });
 
-        // Count the total number of tasks (without pagination) to send for totalTasks
         const totalTasks = await prisma.task.count({
             where: filterConditions,
         });
 
-        return new NextResponse(
-            JSON.stringify({
-                tasks,
-                totalTasks,
-                page,
-            }),
-            { status: 200 }
-        );
+        return NextResponse.json({
+            tasks,
+            totalTasks,
+            page,
+            pageSize: limit,
+        });
     } catch (error) {
-        console.error("Error fetching tasks:", error);
-        return new NextResponse(JSON.stringify({ message: "Error fetching tasks." }), { status: 500 });
+        console.error(error);
+        return NextResponse.json({ message: ERROR_MESSAGES.SERVER_ERROR }, { status: 500 });
     }
 }
+
 
 
